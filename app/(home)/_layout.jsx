@@ -1,4 +1,4 @@
-import Tabs from 'expo-router';
+import { Tabs } from 'expo-router';
 import Entypo from '@expo/vector-icons/Entypo';
 import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
 import Feather from '@expo/vector-icons/Feather';
