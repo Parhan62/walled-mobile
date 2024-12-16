@@ -1,10 +1,9 @@
-import { TouchableOpacity, Text, StyleSheet } from "react-native"
-import { Link } from "expo-router"
+import { TouchableOpacity, Text, StyleSheet} from "react-native"
 
-function Button({bgColor = "#19918F", text}){
+function Button({bgColor = "#19918F", text,  onPress}){
     return(
-        <TouchableOpacity style={{...styles.button, backgroundColor: bgColor}}
-        onPress={()=> <Link href="/home"></Link>}>
+        <TouchableOpacity style={{...styles.button, backgroundColor: bgColor, onPress}}
+        onPress={onPress}>
           <Text style={styles.buttonText}>{text}</Text>
         </TouchableOpacity>
     )
