@@ -10,6 +10,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'Home',
+            headerShown: false,
 
             tabBarIcon: ({ color }) => 
             <Entypo name="home" size={24} color="black" />,
@@ -19,6 +20,7 @@ export default function TabLayout() {
           name="topup"
           options={{
             title: 'topup',
+            headerShown: false,
             tabBarIcon: ({ color }) => 
               <Feather name="arrow-up-circle" size={24} color="black" />,
           }}
@@ -27,6 +29,7 @@ export default function TabLayout() {
           name="transfer"
           options={{
             title: 'transfer',
+            headerShown: false,
             tabBarIcon: ({ color }) => 
               <SimpleLineIcons name="paper-plane" size={24} color="black" />,
           }}

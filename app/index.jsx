@@ -31,9 +31,9 @@ export default function App() {
   const handleSubmit = async () => {
     try {
       LoginSchema.parse(form);
-
+      
       const res = await axios.post(
-        "https://6776-182-3-53-7.ngrok-free.app/auth/login",
+        "http://192.168.30.96:8080/auth/login",
         form
       );
       await AsyncStorage.setItem("token", res.data.data.token);

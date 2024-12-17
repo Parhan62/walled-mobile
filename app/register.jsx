@@ -9,56 +9,176 @@ import {
   Text,
   TextInput,
   ScrollView,
+  TouchableOpacity,
 } from "react-native";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Button from "../components/Button";
 // import Input from '../components/Input';
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import Checkbox from "expo-checkbox";
 import { useState } from "react";
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
+import { z } from "zod";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const RegisterSchema = z.object({
+  username: z.string().min(3, { message: "Must be 3 or more characters long" }),
+  fullname: z.string().min(4, { message: "Must be 4 or more characters long" }),
+  email: z.string().email({ message: "Invalid email address" }),
+  password: z.string().min(8, { message: "Must be 8 or more characters long" }),
+  avatar_url: z.string().url({ message: "Invalid url" }),
+});
 
 export default function App() {
-  const [isChecked, setChecked] = useState(false);
+  const router = useRouter();
+  const [form, setForm] = useState({
+    username: "",
+    fullname: "",
+    email: "",
+    password: "",
+    avatar_url: "",
+  });
+  const [isTermsViewed, setIsTermsViewed] = useState(false);
+  const [errorMsg, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+  const [isChecked, setIsChecked] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+
+  const handleInputChange = (key, value) => {
+    setForm({ ...form, [key]: value });
+    try {
+      RegisterSchema.pick({ [key]: true }).parse({ [key]: value });
+      setErrors((prev) => ({ ...prev, [key]: "" }));
+    } catch (err) {
+      setErrors((prev) => ({ ...prev, [key]: err.errors[0].message }));
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      RegisterSchema.parse(form);
+
+      const res = await axios.post(
+        "http://192.168.30.96:8080/auth/register",
+        form
+      );
+
+      router.push("/");
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response) {
+          setServerError(err.response.data.message || "An error occurred");
+        } else if (err.request) {
+          setServerError("Network error. Please try again later.");
+          console.error("Network Error:", err.request);
+        } else {
+          setServerError("An unexpected error occurred.");
+          console.error("Request Setup Error:", err.message);
+        }
+      } else if (err?.errors) {
+        const errors = {};
+        err.errors.forEach((item) => {
+          const key = item.path[0];
+          errors[key] = item.message;
+        });
+        setErrors(errors);
+      } else {
+        setServerError("An unknown error occurred.");
+        console.error("Unhandled Error:", err);
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <StatusBar style="auto" />
+      {serverError && <Text>{serverError}</Text>}
+      <StatusBar style="auto" hidden />
       <Image source={require("../assets/logo.png")} style={styles.logo} />
 
+      {errorMsg.username ? (
+        <Text marginBottom="10" style={styles.errorMsg}>
+          {errorMsg.username}
+        </Text>
+      ) : null}
+
+      <TextInput
+        marginBottom="10"
+        style={styles.input}
+        placeholder="Username"
+        placeholderTextColor="#aaa"
+        onChangeText={(text) => handleInputChange("username", text)}
+        value={form.username}
+      />
+
+      {errorMsg.fullname ? (
+        <Text marginBottom="10" style={styles.errorMsg}>
+          {errorMsg.fullname}
+        </Text>
+      ) : null}
       <TextInput
         marginBottom="10"
         style={styles.input}
         placeholder="Fullname"
         placeholderTextColor="#aaa"
+        onChangeText={(text) => handleInputChange("fullname", text)}
+        value={form.fullname}
       />
+
+      {errorMsg.email ? (
+        <Text marginBottom="10" style={styles.errorMsg}>
+          {errorMsg.email}
+        </Text>
+      ) : null}
 
       <TextInput
         marginBottom="10"
         style={styles.input}
         placeholder="Email"
         placeholderTextColor="#aaa"
+        keyboardType="email-address"
+        onChangeText={(text) => handleInputChange("email", text)}
+        value={form.email}
       />
+
+      {errorMsg.password ? (
+        <Text marginBottom="10" style={styles.errorMsg}>
+          {errorMsg.password}
+        </Text>
+      ) : null}
 
       <TextInput
         marginBottom="10"
         style={styles.input}
         placeholder="Password"
         placeholderTextColor="#aaa"
+        secureTextEntry={true}
+        onChangeText={(text) => handleInputChange("password", text)}
+        value={form.password}
       />
+
+      {errorMsg.avatar_url ? (
+        <Text marginBottom="10" style={styles.errorMsg}>
+          {errorMsg.avatar_url}
+        </Text>
+      ) : null}
 
       <TextInput
         marginBottom="10"
         style={styles.input}
         placeholder="Avatar Url"
         placeholderTextColor="#aaa"
-        secureTextEntry={true}
+        onChangeText={(text) => handleInputChange("avatar_url", text)}
+        value={form.avatar_url}
       />
+
       <View style={styles.section}>
         <Checkbox
           style={styles.checkbox}
           value={isChecked}
-          onValueChange={setChecked}
+          onValueChange={setIsChecked}
+          disabled={!isTermsViewed}
+          color={isChecked? "#19918f": undefined}
         />
         <Text style={styles.paragraph}>
           I have read and agree to the
@@ -66,13 +186,28 @@ export default function App() {
             <SafeAreaView style={styles.centeredView}>
               <Modal
                 animationType="slide"
-                transparent={true}
+                transparent={false}
                 visible={modalVisible}
                 onRequestClose={() => {
                   Alert.alert("Terms and Conditions has been closed.");
-                  setModalVisible(!modalVisible);
+                  setModalVisible(false);
                 }}
               >
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setModalVisible(false);
+                      setIsTermsViewed(true);
+                    }}
+                  >
+                    <MaterialIcons
+                      name="arrow-back-ios"
+                      size={24}
+                      color="black"
+                    />
+                  </TouchableOpacity>
+                  <Text style={styles.modalTitle}>Terms and Conditions</Text>
+                </View>
                 <ScrollView>
                   <View style={styles.modalView}>
                     <Text style={styles.modalText}>
@@ -194,9 +329,6 @@ export default function App() {
                       content of the Website by you, or by anyone who may be
                       informed of the Website’s contents.
                     </Text>
-                    <Pressable onPress={() => setModalVisible(!modalVisible)}>
-                      <Text style={styles.textStyle}>Back</Text>
-                    </Pressable>
                   </View>
                 </ScrollView>
               </Modal>
@@ -207,7 +339,8 @@ export default function App() {
           </SafeAreaProvider>
         </Text>
       </View>
-      <Button text="Register" />
+
+      <Button handlePress={handleSubmit} text="Register" />
 
       {/* <Input text = "Notes"/> */}
       <Text marginTop="15">
@@ -260,6 +393,24 @@ const styles = StyleSheet.create({
     margin: 8,
     borderWidth: 1,
   },
+  modalHeader: {
+    flexDirection: "row",
+    aligntItems: "center",
+    backgroundColor: "#fff",
+    padding: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 10,
+  },
+  modalTitle:{
+    flex: 1,
+    textAlign: "left",
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "black",
+    marginLeft: 15,
+  },
   modalView: {
     paddingTop: 20,
     backgroundColor: "white",
@@ -284,5 +435,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 5,
     textAlign: "justify",
+  },
+  errorMsg: {
+    color: "red",
+    fontSize: 12,
+    width: "100%",
+    textAlign: "left",
+    marginTop: 5,
   },
 });
