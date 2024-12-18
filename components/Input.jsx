@@ -1,6 +1,7 @@
 import { View, StyleSheet, TextInput, Text } from "react-native"
 
-function Input({text}){
+export default function Input({text}){
+
     return(
         <View style={styles.container}>
             <Text style={styles.placeHolder}>{text}</Text>
@@ -23,5 +24,3 @@ const styles = StyleSheet.create({
         color: '#b3b3b3',
     },
 })
-
-export default Input

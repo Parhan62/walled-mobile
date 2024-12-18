@@ -5,23 +5,44 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import TableTransactions from "../../components/TableTransactions";
 
 export default function Home() {
 
   const [user, setUser] = useState({});
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const value = await AsyncStorage.getItem("token");
+      if (value !== null) {
+        const res = await axios.get("http://192.168.30.96:8080/profile", {
+          headers: {
+            Authorization: `Bearer ${value}`,
+          },
+        });
+        const user = res.data.data;
+        setUser(user);
+      }
+    } catch (e) {
+      console.log(e);
+    }
+    setRefreshing(false);
+  };
+
   useEffect(() => {
     const getData = async () => {
       try {
         const value = await AsyncStorage.getItem("token");
         if (value !== null) {
-          // const res = await axios.get(
-          //   "https://6776-182-3-53-7.ngrok-free.app/login",
           const res = await axios.get("http://192.168.30.96:8080/profile", {
             headers: {
               Authorization: `Bearer ${value}`,
@@ -39,11 +60,13 @@ export default function Home() {
   }, []);
   
   return (
-    <ScrollView containerStyle={styles.container}>
+    <ScrollView containerStyle={styles.container}
+    refreshControl={
+      <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+    }>
       <View style={styles.header}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <Image
-            // source={require("../../assets/asmo.png")}
             source={{ uri: user.avatar_url }}
             style={{ width: 50, height: 50, borderRadius: 100}}
             resizeMode="cover"
@@ -70,7 +93,6 @@ export default function Home() {
             <Text style={{ fontSize: 22, fontWeight: "bold", marginBottom: 8 }}>
               Good Morning, {user.username}
             </Text>
-            {/* <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 8 }}>Good Morning, {user.fullname.split(' ')[0]}</Text> */}
             <Text style={{ fontSize: 18 }}>
               Check all your incoming and outgoing transactions here
             </Text>
@@ -133,69 +155,12 @@ export default function Home() {
             borderRadius: 10,
           }}
         >
-          <Text
-            style={{
-              fontSize: 20,
-              fontWeight: "bold",
-              padding: 20,
-              borderBottomColor: "#b3b3b3",
-              borderBottomWidth: 0.5,
-            }}
-          >
-            Transaction History
-          </Text>
-          {transactions.map((transaction) => (
-            <View
-              key={transaction.id}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingHorizontal: 20,
-                paddingVertical: 15,
-              }}
-            >
-              <View>
-                <Text style={{ fontSize: 18 }}>{transaction.name}</Text>
-                <Text style={{ fontSize: 16 }}>{transaction.type}</Text>
-                <Text style={{ fontSize: 14, color: "#b3b3b3" }}>
-                  {transaction.date}
-                </Text>
-              </View>
-              <Text
-                style={{
-                  fontSize: 18,
-                  color: transaction.debit ? "red" : "green",
-                }}
-              >
-                {transaction.debit ? "-" : "+"} Rp {transaction.amount}
-              </Text>
-            </View>
-          ))}
+          <TableTransactions/>
         </ScrollView>
       </View>
     </ScrollView>
   );
 }
-
-const transactions = [
-  {
-    id: 1,
-    date: "08 December 2024",
-    amount: "75.000",
-    name: "Indoapril",
-    type: "Topup",
-    debit: false,
-  },
-  {
-    id: 2,
-    date: "06 December 2024",
-    amount: "80.000",
-    name: "Si Fulan",
-    type: "Transfer",
-    debit: true,
-  },
-];
 
 const styles = StyleSheet.create({
   balancebox: {

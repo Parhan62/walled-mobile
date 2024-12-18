@@ -20,7 +20,7 @@ import { useState } from "react";
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
 import { z } from "zod";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 const RegisterSchema = z.object({
   username: z.string().min(3, { message: "Must be 3 or more characters long" }),

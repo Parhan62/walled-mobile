@@ -98,7 +98,7 @@ export default function App() {
         onChangeText={(text) => handleInputChange("password", text)}
         value={form.password}
       />
-
+      
       <Button handlePress={handleSubmit} text="Login" />
 
       <Text marginTop="15">
