@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
@@ -16,8 +17,9 @@ import TableTransactions from "../../components/TableTransactions";
 
 export default function Home() {
 
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -29,12 +31,24 @@ export default function Home() {
             Authorization: `Bearer ${value}`,
           },
         });
-        const user = res.data.data;
-        setUser(user);
+          const userData = res.data.data;
+          setUser({
+            fullname: userData.fullname,
+            avatar_url: userData.avatar_url,
+            typeofaccount: "Personal Account",
+            accountnumber: userData.wallet.account_number,
+            balance: parseFloat(userData.wallet.balance),
+          });
+          await AsyncStorage.setItem(
+            "balance",
+            userData.wallet.balance.toString()
+          );
+        }
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.log(e);
-    }
     setRefreshing(false);
   };
 
@@ -48,17 +62,37 @@ export default function Home() {
               Authorization: `Bearer ${value}`,
             },
           });
-          const user = res.data.data;
-          console.log(user);
-          setUser(user);
+          const userData = res.data.data;
+          setUser({
+            fullname: userData.fullname,
+            avatar_url: userData.avatar_url,
+            typeofaccount: "Personal Account",
+            accountnumber: userData.wallet.account_number,
+            balance: parseFloat(userData.wallet.balance),
+          });
+          console.log(userData);
+          await AsyncStorage.setItem(
+            "balance",
+            userData.wallet.balance.toString()
+          );
         }
-      } catch (e) {
-        console.log(e);
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+      } finally {
+      setLoading(false);
       }
     };
     getData();
   }, []);
-  
+
+  if (loading){
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#19918F" />
+      </View>
+    );
+  }
+
   return (
     <ScrollView containerStyle={styles.container}
     refreshControl={
@@ -67,7 +101,7 @@ export default function Home() {
       <View style={styles.header}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <Image
-            source={{ uri: user.avatar_url }}
+            source={{ uri: user?.avatar_url }}
             style={{ width: 50, height: 50, borderRadius: 100}}
             resizeMode="cover"
           />
@@ -106,7 +140,7 @@ export default function Home() {
         <View style={styles.accountnumber}>
           <Text style={{ color: "#fff", fontSize: 18 }}>Account No.</Text>
           <Text style={{ fontWeight: "bold", color: "#fff", fontSize: 18 }}>
-            {user.wallet?.account_number}
+            {user.account_number}
           </Text>
         </View>
 
@@ -114,7 +148,7 @@ export default function Home() {
           <View>
             <Text style={{ fontSize: 20 }}>Balance</Text>
             <Text style={{ fontSize: 24, fontWeight: "bold" }}>
-              Rp {user.wallet?.balance.toLocaleString("id-ID")}
+              Rp {user.balance.toLocaleString("id-ID")}
             </Text>
           </View>
           <View>

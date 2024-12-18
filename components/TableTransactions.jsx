@@ -5,15 +5,40 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import moment from "moment"; 
+import moment from "moment";
 
 const TableTransactions = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      const response = await axios.get(
+        "http://192.168.30.96:8080/transactions",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setTransactions(response.data.data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -29,7 +54,7 @@ const TableTransactions = () => {
           }
         );
 
-        setTransactions(response.data.data); 
+        setTransactions(response.data.data);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -57,7 +82,12 @@ const TableTransactions = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      containerStyle={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <Text style={styles.title}>Transaction History</Text>
       {transactions.map((transaction) => (
         <View key={transaction.id} style={styles.transactionRow}>

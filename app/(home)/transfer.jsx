@@ -1,85 +1,143 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TextInput, ScrollView, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TextInput } from "react-native";
+import Input from "../../components/Input";
+import Amount from "../../components/Amount";
+import Button from "../../components/Button";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import Amount from "../../components/Amount";
-import Input from "../../components/Input";
-import Button from "../../components/Button";
-import { useNavigation } from "@react-navigation/native";
+import { Alert } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function Transfer() {
-    const [accountNumber, setAccountNumber] = useState("");
-    const [notes, setNotes] = useState("");
-    const navigation = useNavigation();
+  const [accountNumber, setAccountNumber] = useState("");
+  const [amount, setAmount] = useState("");
+  const [notes, setNotes] = useState("");
+  const [balance, setBalance] = useState("");
+  const router = useRouter();
 
-    const handleTransfer = async () => {
-        try {
-            const token = await AsyncStorage.getItem("token");
-            if (token !== null) {
-                const res = await axios.post(
-                    "http://192.168.30.96:8080/transactions/transfer",
-                    {
-                        accountNumber,
-                        Amount,
-                        notes,
-                    },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-                console.log(res.data);
-                Alert.alert("Success", "Transfer successful");
-            
-                navigation.navigate("(home)");
-            }
-        } catch (e) {
-            console.log(e);
-            Alert.alert("Error", "Failed to transfer");
+  useEffect(() => {
+    const getBalance = async () => {
+      try {
+        const balance = await AsyncStorage.getItem("balance");
+        if (balance) {
+          setBalance(parseFloat(balance)); 
         }
+      } catch (error) {
+        console.error("Failed to fetch balance:", error);
+      }
     };
 
-    return (
-        <ScrollView style={{ flex: 1, backgroundColor: "#ddd" }}>
-            <View
-                style={{
-                    backgroundColor: "#19918F",
-                    paddingHorizontal: 20,
-                    paddingVertical: 8,
-                    width: "100%",
-                    flexDirection: "row",
-                    alignItems: "center",
-                }}
-            >
-                <Text style={{ color: "#fff", fontSize: 18 }}>To:</Text>
-                <TextInput
-                    style={{ fontSize: 18 }}
-                    keyboardType="number-pad"
-                    placeholder="insert account number"
-                    placeholderTextColor={"#fff"}
-                    color={"#fff"}
-                    onChangeText={setAccountNumber}
-                />
-            </View>
-            <View style={styles.container}>
-                <View>
-                    <Amount showBalance={true} marginBottom={24} />
-                    <Input text={"Notes"} onChangeText={setNotes} />
-                </View>
-                {/* <Button marginTop={240} marginBottom={20} text="Transfer" onPress={handleTransfer} /> */}
-                <Button marginTop={240} marginBottom={20} handlePress={handleTransfer} text="Transfer" />
-            </View>
-        </ScrollView>
-    );
+    getBalance();
+  }, []);
+
+  const handleTransfer = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        Alert.alert("Error", "User is not authenticated.");
+        return;
+      }
+
+      const response = await axios.post(
+        "http://192.168.30.96:8080/transactions/transfer",
+        {
+          amount: parseInt(amount), 
+          recipientWalletId: (accountNumber),
+          description: notes || "Transfer balance",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, 
+          },
+        }
+      );
+      
+      Alert.alert("Success", "Transfer successful!");
+      console.log("Response:", response.data);
+      router.replace("/(home)");
+
+    } catch (error) {
+      console.error("Error:", error.response?.data || error.message);
+      Alert.alert("Error", "Failed to process top-up. Please try again.");
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      
+      <View style={styles.header}>
+        <Text style={styles.headerText}>To:</Text>
+        <TextInput
+          style={styles.inputAccount}
+          keyboardType="number-pad"
+          placeholder="Insert account number"
+          placeholderTextColor={"#fff"}
+          value={accountNumber}
+          onChangeText={(value) => setAccountNumber(value)}
+        />
+      </View>
+      
+      <View style={styles.content}>
+        <Amount
+          showBalance={true}
+          marginBottom={24}
+          
+          balance={balance ? balance.toLocaleString("id-ID") : "Loading..."}
+          
+          onChangeText={(value) => setAmount(value)}
+        />
+        <Input text={"Notes"} onChangeText={(value) => setNotes(value)} />
+      </View>
+
+      <View style={styles.buttonContainer}>
+        {/* <Button
+          text={"Transfer"}
+          handlePress={() =>
+            console.log(
+              `Transferring IDR ${amount} to ${accountNumber} with notes: ${notes}`
+            )
+          }
+        /> */}
+        <Button text={"Transfer"} handlePress={handleTransfer} />
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: "space-between",
-        justifyContent: "center",
-        padding: 20,
-        backgroundColor: "#fff",
-    },
+  container: {
+    flex: 1,
+    backgroundColor: "#FAFBFD",
+  },
+  header: {
+    backgroundColor: "#19918F",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headerText: {
+    color: "#fff",
+    fontSize: 18,
+  },
+  inputAccount: {
+    fontSize: 18,
+    flex: 1,
+    marginLeft: 10,
+    padding: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#fff",
+    color: "#fff",
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  buttonContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: "#FAFBFD",
+  },
 });
